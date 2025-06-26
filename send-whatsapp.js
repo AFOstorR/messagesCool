@@ -72,6 +72,26 @@ app.post('/send', async (req, res) => {
   }
 });
 
+app.post('/reset-auth', async (req, res) => {
+  const authDir = path.join(__dirname, 'auth_info');
+  try {
+    if (fs.existsSync(authDir)) {
+      fs.readdirSync(authDir).forEach(file => {
+        fs.unlinkSync(path.join(authDir, file));
+      });
+    }
+    // Optionally, restart the WhatsApp connection
+    if (sock && sock.ws && sock.ws.close) {
+      sock.ws.close();
+    }
+    isConnected = false;
+    qrString = null;
+    res.json({ status: 'auth_info cleared' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to clear auth_info', details: err.message });
+  }
+});
+
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
