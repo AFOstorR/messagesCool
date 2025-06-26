@@ -3,6 +3,7 @@ const qrcode = require('qrcode-terminal');
 const express = require('express');
 const fs = require('fs');
 const QRCode = require('qrcode');
+const path = require('path');
 const app = express();
 app.use(express.json());
 
