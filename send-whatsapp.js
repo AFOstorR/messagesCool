@@ -2,6 +2,8 @@ const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysocket
 const qrcode = require('qrcode-terminal');
 const express = require('express');
 const fs = require('fs');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); // Temporary upload folder
 const QRCode = require('qrcode');
 const path = require('path');
 const app = express();
@@ -90,6 +92,27 @@ app.post('/reset-auth', async (req, res) => {
     res.json({ status: 'auth_info cleared' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to clear auth_info', details: err.message });
+  }
+});
+app.post('/send-image', upload.single('image'), async (req, res) => {
+  if (!isConnected) {
+    return res.status(400).json({ error: 'WhatsApp not connected' });
+  }
+  const { number, caption } = req.body;
+  if (!number || !req.file) {
+    return res.status(400).json({ error: 'number and image required' });
+  }
+  try {
+    const jid = number + '@s.whatsapp.net';
+    const buffer = fs.readFileSync(req.file.path);
+    await sock.sendMessage(jid, {
+      image: buffer,
+      caption: caption || ''
+    });
+    fs.unlinkSync(req.file.path); // Clean up uploaded file
+    res.json({ status: 'image sent', number });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
