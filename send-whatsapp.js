@@ -115,6 +115,45 @@ app.post('/send-image', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// GET all groups you participate in
+app.get('/groups', async (req, res) => {
+  if (!isConnected) {
+    return res.status(400).json({ error: 'WhatsApp not connected' });
+  }
+  try {
+    const groups = await sock.groupFetchAllParticipating();
+    // Format: array of { id, name }
+    const groupList = Object.values(groups).map(g => ({
+      id: g.id,
+      name: g.subject
+    }));
+    res.json({ groups: groupList });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST send image to group
+app.post('/send-group-image', upload.single('image'), async (req, res) => {
+  if (!isConnected) {
+    return res.status(400).json({ error: 'WhatsApp not connected' });
+  }
+  const { groupJid, caption } = req.body;
+  if (!groupJid || !req.file) {
+    return res.status(400).json({ error: 'groupJid and image required' });
+  }
+  try {
+    const buffer = fs.readFileSync(req.file.path);
+    await sock.sendMessage(groupJid, {
+      image: buffer,
+      caption: caption || ''
+    });
+    fs.unlinkSync(req.file.path); // Clean up uploaded file
+    res.json({ status: 'image sent', groupJid });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const PORT = 3000;
 app.listen(PORT, () => {
