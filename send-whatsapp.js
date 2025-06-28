@@ -162,7 +162,37 @@ app.post('/send-group-image', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+// POST send text to group
+app.post('/send-group-text', async (req, res) => {
+  if (!isConnected) {
+    return res.status(400).json({ error: 'WhatsApp not connected' });
+  }
+  const { groupJid, message } = req.body;
+  if (!groupJid || !message) {
+    return res.status(400).json({ error: 'groupJid and message required' });
+  }
+  try {
+    await sock.sendMessage(groupJid, { text: message });
+    res.json({ status: 'text sent', groupJid });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.post('/send-group-text', async (req, res) => {
+  if (!isConnected) {
+    return res.status(400).json({ error: 'WhatsApp not connected' });
+  }
+  const { groupJid, message } = req.body;
+  if (!groupJid || !message) {
+    return res.status(400).json({ error: 'groupJid and message required' });
+  }
+  try {
+    await sock.sendMessage(groupJid, { text: message });
+    res.json({ status: 'text sent', groupJid });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
