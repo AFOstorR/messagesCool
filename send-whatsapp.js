@@ -139,17 +139,24 @@ app.post('/send-group-image', upload.single('image'), async (req, res) => {
     return res.status(400).json({ error: 'WhatsApp not connected' });
   }
   const { groupJid, caption } = req.body;
-  if (!groupJid || !req.file) {
-    return res.status(400).json({ error: 'groupJid and image required' });
+  if (!groupJid) {
+    return res.status(400).json({ error: 'groupJid required' });
   }
   try {
-    const buffer = fs.readFileSync(req.file.path);
-    await sock.sendMessage(groupJid, {
-      image: buffer,
-      caption: caption || ''
-    });
-    fs.unlinkSync(req.file.path); // Clean up uploaded file
-    res.json({ status: 'image sent', groupJid });
+    if (req.file) {
+      const buffer = fs.readFileSync(req.file.path);
+      await sock.sendMessage(groupJid, {
+        image: buffer,
+        caption: caption || ''
+      });
+      fs.unlinkSync(req.file.path); // Clean up uploaded file
+      res.json({ status: 'image sent', groupJid });
+    } else if (caption) {
+      await sock.sendMessage(groupJid, { text: caption });
+      res.json({ status: 'text sent', groupJid });
+    } else {
+      res.status(400).json({ error: 'Either image or caption required' });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
