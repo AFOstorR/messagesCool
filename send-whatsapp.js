@@ -138,7 +138,8 @@ app.post('/send-group-image', upload.single('image'), async (req, res) => {
   if (!isConnected) {
     return res.status(400).json({ error: 'WhatsApp not connected' });
   }
-  const { groupJid, caption } = req.body;
+  const groupJid = req.body ? req.body.groupJid : undefined;
+  const caption = req.body ? req.body.caption : undefined;
   if (!groupJid) {
     return res.status(400).json({ error: 'groupJid required' });
   }
