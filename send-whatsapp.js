@@ -183,3 +183,59 @@ app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
   start();
 });
+// POST create a new WhatsApp group
+app.post('/create-group', async (req, res) => {
+  if (!isConnected) {
+    return res.status(400).json({ error: 'WhatsApp not connected' });
+  }
+  const { groupName, numbers } = req.body;
+  if (!groupName || !Array.isArray(numbers) || numbers.length === 0) {
+    return res.status(400).json({ error: 'groupName and numbers[] required' });
+  }
+  try {
+    // Convert numbers to WhatsApp JIDs
+    const participants = numbers.map(num => num + '@s.whatsapp.net');
+    const result = await sock.groupCreate(groupName, participants);
+    res.json({ status: 'group created', groupId: result.gid, participants: result.participants });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// POST add members to a WhatsApp group
+app.post('/add-group-members', async (req, res) => {
+  if (!isConnected) {
+    return res.status(400).json({ error: 'WhatsApp not connected' });
+  }
+  const { groupJid, numbers } = req.body;
+  if (!groupJid || !Array.isArray(numbers) || numbers.length === 0) {
+    return res.status(400).json({ error: 'groupJid and numbers[] required' });
+  }
+  try {
+    const participants = numbers.map(num => num + '@s.whatsapp.net');
+    const result = await sock.groupParticipantsUpdate(groupJid, participants, 'add');
+    res.json({ status: 'members added', groupJid, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get('/group-members', async (req, res) => {
+  if (!isConnected) {
+    return res.status(400).json({ error: 'WhatsApp not connected' });
+  }
+  const groupJid = req.query.groupJid;
+  if (!groupJid) {
+    return res.status(400).json({ error: 'groupJid required as query param' });
+  }
+  try {
+    const metadata = await sock.groupMetadata(groupJid);
+    // Extract numbers from participant JIDs
+    const members = metadata.participants.map(p => {
+      // Remove @s.whatsapp.net or @g.us
+      const match = p.id.match(/^(\d+)@/);
+      return match ? match[1] : p.id;
+    });
+    res.json({ groupJid, members });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
